@@ -5,58 +5,47 @@ const client = bot;
 const prefix = '/';
 const fs = require('fs');
 var guildConf = require('./guildConf.json')
-
+bot.commands = new Discord.Collection();
+const commandFiles = fs.readdirSync("./commands").filter(file => file.endsWith('.js'));
 bot.on('ready', bot => {
     console.log('Bot is up :)');
 })
-
+for (const file of commandFiles) {
+    const command = require(`./commands/${file}`)
+    bot.commands.set(command.name, command);
+}
 bot.on('message', message => {
-    if (!message.guild){
+    if (!message.guild) {
         return;
     }
     let msg = message.content.toLowerCase();
     let args = message.content.substring(prefix.length).split(' ');
 
-    if (!guildConf[message.channel.id]){
-        guildConf[message.channel.id] = {
+    if (!guildConf[message.guild.id]) {
+        guildConf[message.guild.id] = {
             prefix: '/'
         }
     }
-    fs.writeFile('./guildConf.json', JSON.stringify(guildConf, null, 2), (err) =>{
+    fs.writeFile('./guildConf.json', JSON.stringify(guildConf, null, 2), (err) => {
         if (err) console.log(err);
     })
-    if (msg.startsWith(guildConf[message.channel.id].prefix + 'hello')) {
-        if (args[1]) {
-            return message.channel.send('yes')
-        }
-        message.channel.send("hi")
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'hello')) {
+        bot.commands.get('hello').execute(message, args)
     }
 
-    if (msg.startsWith(guildConf[message.channel.id].prefix + 'bye')) {
-        if (args[1]) {
-            return message.channel.send('no')
-        }
-        message.channel.send('bye :(')
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'bye')) {
+        bot.commands.get('bye').execute(message, args)
     }
 
-    if (msg.startsWith(guildConf[message.channel.id].prefix + 'say')) {
-        if (!args[1]) {
-            return message.channel.send('Please include what you want me to say.')
-        }
-        message.channel.send(args.slice(1).join(" "))
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'say')) {
+        bot.commands.get('say').execute(message, args)
     }
 
-    if (msg.startsWith(guildConf[message.channel.id].prefix + 'coin')) {
-        let number = Math.floor(Math.random() * 2);
-        if (number == 1) {
-            message.channel.send('Heads')
-        }
-        if (number == 0) {
-            message.channel.send('Tails')
-        }
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'coin')) {
+        bot.commands.get('coin').execute(message, args)
     }
 
-    if (msg.startsWith(guildConf[message.channel.id].prefix + 'rng')) {
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'rng')) {
         if (!args[1]) {
             return message.channel.send('Please include a number.')
         }
@@ -67,7 +56,7 @@ bot.on('message', message => {
         message.channel.send(number)
     }
 
-    if (msg.startsWith(guildConf[message.channel.id].prefix + 'embed')) {
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'embed')) {
         let embed = new Discord.MessageEmbed()
             .setTitle('Title')
             .setDescription('Description')
@@ -80,7 +69,7 @@ bot.on('message', message => {
         message.channel.send(embed)
     }
 
-    if (msg.startsWith(guildConf[message.channel.id].prefix + 'rps')) {
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'rps')) {
         if (!args[1]) {
             return message.channel.send('Please include your choice.')
         }
@@ -118,7 +107,7 @@ bot.on('message', message => {
         }
     }
 
-    if (msg.startsWith(guildConf[message.channel.id].prefix + '8ball')) {
+    if (msg.startsWith(guildConf[message.guild.id].prefix + '8ball')) {
         if (!args[2]) {
             return message.channel.send('Please ask a full questions.')
         }
@@ -144,7 +133,7 @@ bot.on('message', message => {
 
     }
 
-    if (msg.startsWith(guildConf[message.channel.id].prefix + 'rate')) {
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'rate')) {
         let number = Math.floor(Math.random() * 101);
         if (!args[1]) {
             return message.channel.send('I would rate you a ' + number + '/100')
@@ -159,7 +148,7 @@ bot.on('message', message => {
 
     }
 
-    if (msg.startsWith(guildConf[message.channel.id].prefix + 'kill')) {
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'kill')) {
         let user = message.mentions.users.first();
         if (!user) {
             return message.channel.send('Please include who you are killing.')
@@ -167,15 +156,8 @@ bot.on('message', message => {
         return message.channel.send(message.author.username + ' Killed ' + user.username)
     }
 
-    if (msg.startsWith(guildConf[message.channel.id].prefix + 'prefix')){
-        if (!args[1]){
-            return message.channel.send('Please include the new prefix.')
-        }
-        guildConf[message.channel.id].prefix = (args[1]).toLowerCase();
-        fs.writeFile('./guildConf.json', JSON.stringify(guildConf, null, 2), (err) =>{
-            if (err) console.log(err);
-        })
-        return message.channel.send('The new prefix for this server is "' + (args[1]).toLowerCase() + '"')
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'prefix')) {
+        bot.commands.get('prefix').execute(message, args, guildConf)
     }
 
 
