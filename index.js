@@ -154,10 +154,14 @@ bot.on('message', message => {
             return message.channel.send('Please include who you are killing.')
         }
         return message.channel.send(message.author.username + ' Killed ' + user.username)
-    }
+    }        
 
     if (msg.startsWith(guildConf[message.guild.id].prefix + 'prefix')) {
+        if (message.member.hasPermission("MANAGE_GUILD") || message.member.hasPermission("ADMINISTRATOR")){
         bot.commands.get('prefix').execute(message, args, guildConf)
+        } else {
+            return message.channel.send('You require the manage server permission to use this.')
+        }
     }
 
 
