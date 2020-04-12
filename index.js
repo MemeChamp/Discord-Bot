@@ -5,6 +5,7 @@ const client = bot;
 const prefix = '/';
 const fs = require('fs');
 var guildConf = require('./guildConf.json')
+var sugChan = require('./sugChan.json')
 bot.commands = new Discord.Collection();
 const commandFiles = fs.readdirSync("./commands").filter(file => file.endsWith('.js'));
 bot.on('ready', bot => {
@@ -154,17 +155,128 @@ bot.on('message', message => {
             return message.channel.send('Please include who you are killing.')
         }
         return message.channel.send(message.author.username + ' Killed ' + user.username)
-    }        
+    }
 
     if (msg.startsWith(guildConf[message.guild.id].prefix + 'prefix')) {
-        if (message.member.hasPermission("MANAGE_GUILD") || message.member.hasPermission("ADMINISTRATOR")){
-        bot.commands.get('prefix').execute(message, args, guildConf)
+        if (message.member.hasPermission("MANAGE_GUILD") || message.member.hasPermission("ADMINISTRATOR")) {
+            bot.commands.get('prefix').execute(message, args, guildConf)
         } else {
             return message.channel.send('You require the manage server permission to use this.')
         }
     }
 
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'kick')) {
+        if (message.member.hasPermission('KICK_MEMBERS') || message.member.hasPermission("ADMINISTRATOR")) {
+            if (!args[1]) {
+                return message.channel.send('Please include who you are kicking.')
+            }
+            var user = message.mentions.members.first();
+            user.kick().then((user) => {
+                let what = (" Kicked " + user.edit)
+                log (message, what)
+                message.channel.send('That user was successfully kicked.')
+            }).catch(() => {
+                message.channel.send('There was an error attempting this.')
+            })
+        } else {
+            return message.channel.send('You do not have permissions.')
+        }
+    }
+
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'ban')) {
+        if (message.member.hasPermission("BAN_MEMBERS") || message.member.hasPermission("ADMINISTRATOR")) {
+            if (!args[1]) {
+                return message.channel.send('Please include who you are banning.')
+            }
+            var user = message.mentions.members.first();
+            user.ban().then((user) => {
+                let what = (" Banned " + user.edit)
+                log (message, what)
+                message.channel.send('That user was successfully banned.')
+            }).catch(() => {
+                message.channel.send('There was an error attempting this.')
+            })
+
+        } else {
+            return message.channel.send('You do not have permissions.')
+        }
+    }
+
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'suggestforbot')) {
+        if (!args[1]) {
+            return message.channel.send('Please include your suggestion.')
+        }
+        if (bot.channels.fetch('698681326907293716')) {
+            bot.channels.fetch('698681326907293716').then(channel => {
+                channel.send(args.slice(1).join(" "))
+            })
+        } else {
+            return message.channel.send('There was an error doing this.')
+        }
+    }
+
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'suggestforserver')) {
+        if (!args[1]) {
+            return message.channel.send('Please include your suggestion.')
+        }
+        if (bot.channels.fetch(sugChan[message.guild.id].sugChan)) {
+            bot.channels.fetch(sugChan[message.guild.id].sugChan).then(channel => {
+                channel.send(args.slice(1).join(" "))
+            })
+        } else {
+            return message.channel.send('There was an error doing this.')
+        }
+    }
+
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'setsuggest')) {
+        sugChan[message.guild.id] = {
+            sugChan: message.channel.id
+        }
+        fs.writeFile('./sugChan.json', JSON.stringify(sugChan, null, 2), (err) => {
+            if (err) console.log(err);
+        })
+        return message.channel.send(message.channel.name + ' is now the new suggestions channel.')
+    }
+
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'log')) {
+        if (message.member.hasPermission("ADMINISTRATOR") ||message.member.hasPermission("MANAGE_GUILD")){
+
+            if (!args[1]) {
+                return message.channel.send('Please include your what you are logging.')
+            }
+
+        if (bot.channels.fetch(sugChan[message.guild.id].logChan)) {
+            bot.channels.fetch(sugChan[message.guild.id].logChan).then(channel => {
+                channel.send(args.slice(1).join(" "))
+            })
+        } else {
+            return message.channel.send('There was an error doing this.')
+        }
+    } else {
+        return message.channel.send('You do not have permissions to log.')
+    }
+    }
+
+    if (msg.startsWith(guildConf[message.guild.id].prefix + 'setlog')) {
+        sugChan[message.guild.id] = {
+            logChan: message.channel.id
+        }
+        fs.writeFile('./sugChan.json', JSON.stringify(sugChan, null, 2), (err) => {
+            if (err) console.log(err);
+        })
+        return message.channel.send(message.channel.name + ' is now the new logging channel.')
+    }
 
 })
+
+function log (message, what){
+    if (bot.channels.fetch(sugChan[message.guild.id].logChan)) {
+        bot.channels.fetch(sugChan[message.guild.id].logChan).then(channel => {
+            channel.send(message.author.username + what)
+        })
+    } else {
+        return;
+    }
+}
 
 bot.login(token);
